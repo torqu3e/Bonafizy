@@ -1,11 +1,10 @@
 /* Sketch - Bonafizy
- * Version - 0.1.1
+ * Version - 0.1.2
  * Author - Tejinder Singh
  *
  * TODO:
     - Help Page
-    - Circuit diagram, 
-    - Chain toggle functions under an API handler
+    - Circuit diagram
  */
 
 
@@ -18,12 +17,12 @@
 
 //------------------------------------------
 #ifndef STASSID
-#define STASSID "WIFI_SSID"
-#define STAPSK  "WIFI_PASSWORD"
+#define STASSID "dirty"
+#define STAPSK  "bigboobies"
 #endif
 //------------------------------------------
 
-#define FW_VER "0.1.1"
+#define FW_VER "0.1.2"
 #define POWER_BUTTON D3 //Pin attached to kettle's power button
 #define HOLD_BUTTON D2 //Pin attached to kettle's hold button
 #define POWER_LED D6 //Pin attached to kettle's power LED
@@ -102,158 +101,115 @@ void setup() {
   ArduinoOTA.begin();
 
   server.on("/", HTTP_GET, HandleRoot);
-  server.on("/state", HTTP_GET, get_state);
-  server.on("/brew", HTTP_GET, brew);
-  server.on("/power/on", HTTP_GET, power_on);
-  server.on("/power/off", HTTP_GET, power_off);
-  server.on("/hold/on", HTTP_GET, hold_on);
-  server.on("/hold/off", HTTP_GET, hold_off);
+  server.on("/state", HTTP_GET, api_handler);
+  server.on("/brew", HTTP_GET, api_handler);
+  server.on("/power/on", HTTP_GET, api_handler);
+  server.on("/power/off", HTTP_GET, api_handler);
+  server.on("/hold/on", HTTP_GET, api_handler);
+  server.on("/hold/off", HTTP_GET, api_handler);
   server.onNotFound(HandleNotFound);
   server.begin();
   Serial.println("HTTP server started at ip " + WiFi.localIP().toString());
 }
 
-void brew() {
-  String message = "{\"state\":";
-  if (digitalRead(POWER_LED) == 1) {
-    digitalWrite(POWER_BUTTON, LOW);
-    delay(wait_time_ms);
-    digitalWrite(POWER_BUTTON, HIGH);   
-    delay(wait_time_ms); 
-    if (digitalRead(HOLD_LED) == 1) {
-      digitalWrite(HOLD_BUTTON, LOW);
-      delay(wait_time_ms);
-      digitalWrite(HOLD_BUTTON, HIGH);
-    }
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";
-    message += "\"Brewing now!!!\"}\n";
+void api_handler() {
+  String message = "{\"message\": ";
+  if (server.uri() == "/power/off") {
+    message += power_off();
   }
-  else {
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";
-    message += "\"Kettle already on\"}\n";    
-    }
+  else if (server.uri() == "/power/on") {
+     message += power_on();
+  }
+  else if (server.uri() == "/hold/on") {
+     message += hold_on();
+  }
+  else if (server.uri() == "/hold/off") {
+     message += hold_off();
+  }
+  else if (server.uri() == "/brew") {
+     message += brew();
+  }
+  else if (server.uri() == "/state") {
+    message = "{\"version\": \"";
+    message += FW_VER;
+    message += "\"";
+  }
+  message += ", \"state\": ";
+  message += "{\"power\": ";
+  message += 1 - digitalRead(POWER_LED);
+  message += ", \"hold\": ";
+  message += 1 - digitalRead(HOLD_LED);
+  message += "}}\n";
   Serial.println(message);
   server.send(200, "text/plain", message);
 }
 
-void power_on() {
-  String message = "{\"state\":";
-  if (digitalRead(POWER_LED) == 1) {
+void blip(String function) {
+  if (function == "power") {
     digitalWrite(POWER_BUTTON, LOW);
     delay(wait_time_ms);
     digitalWrite(POWER_BUTTON, HIGH);
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";
-    message += "\"Kettle powered on\"}\n";
-    }
-  else {
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";
-    message += "\"Kettle already on\"}\n";
-    }
-  Serial.println(message);
-  server.send(200, "text/plain", message);
-}
-
-
-void hold_on() {
-  String message = "{\"state\":";
-  if (digitalRead(POWER_LED) == 0) {
-    if (digitalRead(HOLD_LED) == 1) {
-      digitalWrite(HOLD_BUTTON, LOW);
-      delay(wait_time_ms);
-      digitalWrite(HOLD_BUTTON, HIGH);
-      message += "{\"power\": ";
-      message += 1 - digitalRead(POWER_LED);
-      message += ", \"hold\": ";
-      message += 1 - digitalRead(HOLD_LED);
-      message += "}, \"message\": ";
-      message += "\"Hold temperature on\"}\n";
-      }
-    else {
-      message += "{\"power\": ";
-      message += 1 - digitalRead(POWER_LED);
-      message += ", \"hold\": ";
-      message += 1 - digitalRead(HOLD_LED);
-      message += "}, \"message\": ";
-      message += "\"Hold temperature already on\"}\n";
-      }
   }
-  else {
-      message += "{\"power\": ";
-      message += 1 - digitalRead(POWER_LED);
-      message += ", \"hold\": ";
-      message += 1 - digitalRead(HOLD_LED);
-      message += "}, \"message\": ";
-      message = "\"Kettle is off, cannot turn hold on\"}\n";
-      }
-  Serial.println(message);
-  server.send(200, "text/plain", message);
-}
-
-
-void power_off() {
-  String message = "{\"state\":";
-  if (digitalRead(POWER_LED) == 0) {
-    digitalWrite(POWER_BUTTON, LOW);
-    delay(wait_time_ms);
-    digitalWrite(POWER_BUTTON, HIGH);
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";
-    message += "\"Kettle powered off\"}\n";
-    }
-  else {
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";    
-    message += "\"Kettle already off\"}\n";}
-  Serial.println(message);
-  server.send(200, "text/plain", message);
-}
-
-
-void hold_off() {
-  String message = "{\"state\":";
-  if (digitalRead(HOLD_LED) == 0) {
+  else if (function == "hold") {
     digitalWrite(HOLD_BUTTON, LOW);
     delay(wait_time_ms);
     digitalWrite(HOLD_BUTTON, HIGH);
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";
-    message += "\"Hold temperature off\"}\n";
+  }
+} 
+
+
+String power_on() {
+  if (digitalRead(POWER_LED) == 1) {
+    blip("power");
+    delay(wait_time_ms);
+    return ("\"Kettle powered on\"");
     }
-  else {
-    message += "{\"power\": ";
-    message += 1 - digitalRead(POWER_LED);
-    message += ", \"hold\": ";
-    message += 1 - digitalRead(HOLD_LED);
-    message += "}, \"message\": ";    
-    message += "\"Hold already off\"}\n";
+  else { return ("\"Kettle already on\"");}
+}
+
+String power_off() {
+  if (digitalRead(POWER_LED) == 0) {
+    blip("power");
+    return ("\"Kettle powered off\"");
     }
-  Serial.println(message);
-  server.send(200, "text/plain", message);
+  else { return ("\"Kettle already off\""); }
+}
+
+
+String brew() {
+  if (digitalRead(POWER_LED) == 1) {
+    blip("power");
+    delay(wait_time_ms);
+    if (digitalRead(HOLD_LED) == 1) {
+      blip("hold");
+    }
+    return ("\"Brewing now!!!\"");
+  }
+  else { return("\"Kettle already on\"");}
+}
+
+
+String hold_on() {
+  if (digitalRead(POWER_LED) == 0) {
+    if (digitalRead(HOLD_LED) == 1) {
+      blip("hold");
+      return("\"Hold temperature on\"");
+      }
+    else { return("\"Hold temperature already on\""); }
+  }
+  else { return("\"Kettle is off, cannot turn hold on\"");}
+}
+
+
+String hold_off() {
+  if (digitalRead(POWER_LED) == 0) {
+    if (digitalRead(HOLD_LED) == 0) {
+      blip("hold");
+      return("\"Hold temperature off\"");
+      }
+    else { return("\"Hold already off\""); }
+  }
+  else { return("\"Kettle is off, cannot turn hold off\""); }
 }
 
 
@@ -263,20 +219,6 @@ void HandleRoot() {
   message += "<body>Wifi endpoint for the Bonavita kettle</body>";
   message += "</html>";
   server.send(200, "text/html", message );
-}
-
-
-void get_state() {
-  String message = "{\"state\":";
-  message += "{\"power\": ";
-  message += 1 - digitalRead(POWER_LED); // Kettle's power is inverted
-  message += ", \"hold\": ";
-  message += 1 - digitalRead(HOLD_LED); // Kettle's power is inverted
-  message += "}, \"version\": \"";
-  message += FW_VER;
-  message += "\"}\n";
-  Serial.println(message);
-  server.send(200, "application/json", message);
 }
 
 

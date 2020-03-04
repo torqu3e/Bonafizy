@@ -1,0 +1,13 @@
+Tue  3 Mar 2020 21:43:37 EST
+{"message": "Kettle already off", "state": {"power": 0, "hold": 0}}
+{"message": "Kettle is off, cannot turn hold off", "state": {"power": 0, "hold": 0}}
+{"message": "Kettle is off, cannot turn hold on", "state": {"power": 0, "hold": 0}}
+{"message": "Kettle powered on", "state": {"power": 1, "hold": 0}}
+{"message": "Hold already off", "state": {"power": 1, "hold": 0}}
+{"message": "Hold temperature on", "state": {"power": 1, "hold": 1}}
+{"message": "Hold temperature already on", "state": {"power": 1, "hold": 1}}
+{"message": "Kettle powered off", "state": {"power": 0, "hold": 0}}
+{"message": "Brewing now!!!", "state": {"power": 1, "hold": 1}}
+{"message": "Kettle already on", "state": {"power": 1, "hold": 1}}
+{"message": "Kettle powered off", "state": {"power": 0, "hold": 0}}
+{"version": "0.1.1", "state": {"power": 0, "hold": 0}}
