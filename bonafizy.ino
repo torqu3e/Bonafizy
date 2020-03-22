@@ -1,5 +1,5 @@
 /* Sketch - Bonafizy
- * Version - 0.1.2
+ * Version - 0.1.3
  * Author - Tejinder Singh
  *
  * TODO:
@@ -16,13 +16,14 @@
 #include <ArduinoOTA.h>
 
 //------------------------------------------
+#define HOSTNAME "kettle"
 #ifndef STASSID
 #define STASSID "WIFI_SSID"
 #define STAPSK  "WIFI_PASSWORD"
 #endif
 //------------------------------------------
 
-#define FW_VER "0.1.2"
+#define FW_VER "0.1.3"
 #define POWER_BUTTON D3 //Pin attached to kettle's power button
 #define HOLD_BUTTON D2 //Pin attached to kettle's hold button
 #define POWER_LED D6 //Pin attached to kettle's power LED
@@ -44,12 +45,14 @@ void setup() {
   pinMode (HOLD_LED, INPUT);
 
   Serial.begin(115200);
-  Serial.print("Firmware version");
+  Serial.print("");
+  Serial.println("Bonafizy kettle automator");
+  Serial.print("Firmware version: ");
   Serial.println(FW_VER);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  Serial.println("");
+  Serial.println("Connecting to WiFi...");
 
   uint8_t wifi_timer = 0;
   while (WiFi.status() != WL_CONNECTED) {
@@ -61,12 +64,28 @@ void setup() {
     }
     wifi_timer++;
   }
-
   Serial.println("");
   Serial.print("Connected to: ");
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  Serial.println("");
+
+  Serial.println("Setting up mDNS responder...");
+  uint8_t mdns_counter = 0;
+  while (!MDNS.begin(HOSTNAME)) {
+    delay(1000);
+    Serial.print(".");
+    if (mdns_counter >= 5) {
+      Serial.println("mDNS responder setup failed, rebooting...");
+      ESP.reset();
+    }
+    mdns_counter++;
+  }
+  MDNS.addService("http", "tcp", 80);
+  Serial.print("mDNS responder up, responding at ");
+  Serial.printf("%s.local", HOSTNAME);
+  Serial.println("");
 
   ArduinoOTA.onStart([]() {
     String type;
@@ -109,7 +128,9 @@ void setup() {
   server.on("/hold/off", HTTP_GET, api_handler);
   server.onNotFound(HandleNotFound);
   server.begin();
-  Serial.println("HTTP server started at ip " + WiFi.localIP().toString());
+  Serial.print("HTTP server started on ");
+  Serial.print(HOSTNAME);
+  Serial.println(" at ip " + WiFi.localIP().toString());
 }
 
 void api_handler() {
@@ -239,6 +260,7 @@ void HandleNotFound() {
 
 
 void loop() {
+  MDNS.update();
   server.handleClient();
   ArduinoOTA.handle();
 }
