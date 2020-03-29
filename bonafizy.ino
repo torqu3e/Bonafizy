@@ -3,8 +3,7 @@
  * Author - Tejinder Singh
  *
  * TODO:
-    - Help Page
-    - Circuit diagram
+    - Wifi initial setup
  */
 
 
