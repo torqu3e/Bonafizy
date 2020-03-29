@@ -20,6 +20,7 @@ The name bonafizy is a portmanteau of Bonavita, WiFi and lazy. And by lazy I mea
 * Existent buttons continue to function
 * Control both POWER and HOLD individually
 * Read both POWER and HOLD LED state
+* OTA updates
 * mDNS
 * TBD
   * Wifi config during initial setup
