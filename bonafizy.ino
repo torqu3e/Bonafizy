@@ -1,38 +1,33 @@
 /* Sketch - Bonafizy
- * Version - 0.1.3
+ * Version - 0.1.4
  * Author - Tejinder Singh
  *
  * TODO:
-    - Wifi initial setup
+    - Brew coffee! 
  */
 
 
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <WiFiClient.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
+#include <ArduinoJson.h>
 #include <ArduinoOTA.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiManager.h>
 
 //------------------------------------------
 #define HOSTNAME "kettle"
-#ifndef STASSID
-#define STASSID "WIFI_SSID"
-#define STAPSK  "WIFI_PASSWORD"
-#endif
 //------------------------------------------
 
-#define FW_VER "0.1.3"
+#define FW_VER "0.1.4"
 #define POWER_BUTTON D3 //Pin attached to kettle's power button
 #define HOLD_BUTTON D2 //Pin attached to kettle's hold button
 #define POWER_LED D6 //Pin attached to kettle's power LED
 #define HOLD_LED D5 //Pin attached to kettle's hold LED
 #define BUILTIN_LED D4
 
-const char* ssid = STASSID;
-const char* password = STAPSK;
 const int wait_time_ms = 100;
 
+WiFiManager wifiManager;
 ESP8266WebServer server(80);
 
 void setup() {
@@ -49,24 +44,14 @@ void setup() {
   Serial.print("Firmware version: ");
   Serial.println(FW_VER);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("Connecting to WiFi...");
+  Serial.println("Starting wifi manager");
+  wifiManager.autoConnect("Bonafizy_AP");
+  Serial.println("Should be on wifi at this point.");
 
-  uint8_t wifi_timer = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-    if (wifi_timer >= 10) {
-      Serial.println("Wifi not connected, rebooting...");
-      ESP.reset();
-    }
-    wifi_timer++;
-  }
   Serial.println("");
-  Serial.print("Connected to: ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
+  Serial.print("Connected to ");
+  Serial.print(WiFi.SSID());
+  Serial.print(" at ");
   Serial.println(WiFi.localIP());
   Serial.println("");
 
@@ -90,7 +75,7 @@ void setup() {
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH) {
       type = "sketch";
-    } else { // U_FS
+    } else { 
       type = "filesystem";
     }
 
@@ -125,6 +110,8 @@ void setup() {
   server.on("/power/off", HTTP_GET, api_handler);
   server.on("/hold/on", HTTP_GET, api_handler);
   server.on("/hold/off", HTTP_GET, api_handler);
+  server.on("/bonafizy/admin", HTTP_POST, bonafizy_admin);
+  server.on("/coffee", HTTP_GET, htcpcp);
   server.onNotFound(HandleNotFound);
   server.begin();
   Serial.print("HTTP server started on ");
@@ -161,7 +148,7 @@ void api_handler() {
   message += 1 - digitalRead(HOLD_LED);
   message += "}}\n";
   Serial.println(message);
-  server.send(200, "text/plain", message);
+  server.send(200, "application/json", message);
 }
 
 void blip(String function) {
@@ -176,7 +163,6 @@ void blip(String function) {
     digitalWrite(HOLD_BUTTON, HIGH);
   }
 } 
-
 
 String power_on() {
   if (digitalRead(POWER_LED) == 1) {
@@ -195,7 +181,6 @@ String power_off() {
   else { return ("\"Kettle already off\""); }
 }
 
-
 String brew() {
   if (digitalRead(POWER_LED) == 1) {
     blip("power");
@@ -208,7 +193,6 @@ String brew() {
   else { return("\"Kettle already on\"");}
 }
 
-
 String hold_on() {
   if (digitalRead(POWER_LED) == 0) {
     if (digitalRead(HOLD_LED) == 1) {
@@ -219,7 +203,6 @@ String hold_on() {
   }
   else { return("\"Kettle is off, cannot turn hold on\"");}
 }
-
 
 String hold_off() {
   if (digitalRead(POWER_LED) == 0) {
@@ -232,6 +215,29 @@ String hold_off() {
   else { return("\"Kettle is off, cannot turn hold off\""); }
 }
 
+void bonafizy_admin() {
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, server.arg("plain"));
+  String message = "";
+   if (doc["factory_reset"] == "True" || doc["factory_reset"] == "true") {
+     message += "{\"message\": \"Resetting ESP, Connect to AP after reboot for configuration\"}";
+     Serial.println(message);
+     server.send(200, "application/json", message);
+     delay(500);
+     wifiManager.resetSettings();
+     delay(500);
+     ESP.reset();
+   }
+  message += "{\"message\": \"Unrecognized instruction\"}";
+  Serial.println(message);
+  server.send(422, "application/json", message);
+}
+
+void htcpcp() {
+  String message = "<html><h3><a href=\"https://tools.ietf.org/html/rfc2324#section-2.3.2\">I'm a Teapot</a></h2></html>";
+  Serial.println("I'm a Teapot https://tools.ietf.org/html/rfc2324#section-2.3.2");
+  server.send(418, "text/html", message );
+}
 
 void HandleRoot() {
   String message = "<html>";
