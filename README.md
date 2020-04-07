@@ -31,6 +31,7 @@ The name bonafizy is a portmanteau of Bonavita, WiFi and lazy. And by lazy I mea
 * [SparkFun Opto-isolator Breakout](https://www.sparkfun.com/products/9118) - 2
 * USB wall charger - 1
 ## Tools and consumables
+* Y1 screwdriver bit. iFixit has some good kits
 * Jumper wires - few, ideally in different colours
 * Micro usb cable
 * Heatshrink tubing
