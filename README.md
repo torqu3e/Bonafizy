@@ -18,12 +18,13 @@ The name bonafizy is a portmanteau of Bonavita, WiFi and lazy. And by lazy I mea
 
 ## Features
 * Existent buttons continue to function
+  * Kettle's in-built safety mechanisms still valid
 * Control both POWER and HOLD individually
 * Read both POWER and HOLD LED state
+* Switch power and hold on with one request
+* Wifi config via initial setup
 * OTA updates
 * mDNS
-* TBD
-  * Wifi config during initial setup
 
 ## Parts list
 * [Bonavita kettle](https://bonavitaworld.com/products/category/Kettles) (of course). - 1
@@ -51,11 +52,8 @@ The kettle's logic is reversed, which means pulling a pin low is considered as o
 
 Solder the D1 mini and opto coupler boards together per the wiring diagram. For the wires going to the kettle's PCB solder on about 8~10 inch long pieces onto the opto coupler boards. 
 
-Flash the the sketch to the board as things will get more in situ after this. Arduino IDE with the ESP8266 board files added to it works well. Add the wifi credentials where it says 
-```
-WIFI_SSID 
-WIFI_PASSWORD
-```
+Flash the the sketch to the board as things will get more in situ after this. Arduino IDE with the ESP8266 board files added to it works well. Connect to `Bonafizy_AP` after reboot. Configure
+wifi details and wait for the board to establish connection to the configured AP. If this fails, the `Bonafizy_AP` should broadcast again, so try reconfiguring.
 Now is a good time to test the API endpoint is responding. Toggling the LED pins by pulling them high/low should reflect on the /state endpoint.
 
 Loosely place everything in the base and wire/route things however it seems appropriate. Solder the wires to the specific pins on the kettle (remember - conformal coating).
@@ -70,12 +68,14 @@ If everything is good. Undo the screws and coat all the points that were soldere
 
 ## Endpoints
 ```
-/state      - retrieve kettle state
-/brew       - turn power and hold on at once
-/power/off  - turn kettle off
-/power/on   - power on
-/hold/off   - switch hold off
-/hold/on    - invert ^
+/state          - retrieve kettle state
+/brew           - turn power and hold on at once
+/power/off      - turn kettle off
+/power/on       - power on
+/hold/off       - switch hold off
+/hold/on        - invert ^
+/bonafizy/admin - reset wifi configuration (POST with body - '{"factory_reset":"true"}')
+/coffee         - Hit it!
 ```
 
 ## Musings
@@ -83,5 +83,6 @@ If everything is good. Undo the screws and coat all the points that were soldere
 * The ILD213T opto coupler [datasheet](https://www.vishay.com/docs/83647/ild205t.pdf)
 * Smallest USB charger you can find. The Apple 5w charger from olden days barely fits in there, takes some cutting of the base. An [HLK-PM01](https://www.aliexpress.com/wholesale?catId=0&initiative_id=SB_20200329071832&SearchText=hlk+pm01) is another potentially good candidate though not tested personally.
 * Kettle originally contains an ATMEL 24C02 EEPROM and a SONIX SN8P2722 microcontroller.
+* Hold LED state is read from the microcontroller pin because the voltage drop across the resistor is too small for the threshold of the opto-coupler. This was the most time consuming part of the hardware setup.
 
 
