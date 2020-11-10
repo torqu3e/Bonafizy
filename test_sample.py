@@ -3,9 +3,11 @@
 import json
 import pytest
 import requests
+import socket
 import time
 
 FW_VER = "0.1.5"
+KETTLE_IP = socket.gethostbyname("kettle.local")
 
 API_ENDPOINTS = [
     "power/off",
@@ -40,7 +42,7 @@ RESPONSES = [
 
 
 def check_response(endpoint):
-    r = requests.get(f"http://192.168.1.186/{endpoint}")
+    r = requests.get(f"http://{KETTLE_IP}/{endpoint}")
     time.sleep(1)
     return r.text
 
