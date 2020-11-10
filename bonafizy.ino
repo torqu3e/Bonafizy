@@ -1,5 +1,5 @@
 /* Sketch - Bonafizy
- * Version - 0.1.4
+ * Version - 0.1.5
  * Author - Tejinder Singh
  *
  * TODO:
@@ -18,7 +18,7 @@
 #define HOSTNAME "kettle"
 //------------------------------------------
 
-#define FW_VER "0.1.4"
+#define FW_VER "0.1.5"
 #define POWER_BUTTON D3 //Pin attached to kettle's power button
 #define HOLD_BUTTON D2 //Pin attached to kettle's hold button
 #define POWER_LED D6 //Pin attached to kettle's power LED
@@ -120,33 +120,33 @@ void setup() {
 }
 
 void api_handler() {
-  String message = "{\"message\": ";
+  String message = "";
+  const size_t capacity = 2*JSON_OBJECT_SIZE(2) + 100;
+  DynamicJsonDocument doc(capacity);
+
   if (server.uri() == "/power/off") {
-    message += power_off();
+    doc["message"] = power_off();
   }
   else if (server.uri() == "/power/on") {
-     message += power_on();
+     doc["message"] = power_on();
   }
   else if (server.uri() == "/hold/on") {
-     message += hold_on();
+     doc["message"] = hold_on();
   }
   else if (server.uri() == "/hold/off") {
-     message += hold_off();
+     doc["message"] = hold_off();
   }
   else if (server.uri() == "/brew") {
-     message += brew();
+     doc["message"] = brew();
   }
   else if (server.uri() == "/state") {
-    message = "{\"version\": \"";
-    message += FW_VER;
-    message += "\"";
+    doc["version"] = FW_VER;
   }
-  message += ", \"state\": ";
-  message += "{\"power\": ";
-  message += 1 - digitalRead(POWER_LED);
-  message += ", \"hold\": ";
-  message += 1 - digitalRead(HOLD_LED);
-  message += "}}\n";
+
+  JsonObject state = doc.createNestedObject("state");
+  state["power"] = 1 - digitalRead(POWER_LED);
+  state["hold"] = 1 - digitalRead(HOLD_LED);
+  serializeJsonPretty(doc, message);
   Serial.println(message);
   server.send(200, "application/json", message);
 }
@@ -168,17 +168,17 @@ String power_on() {
   if (digitalRead(POWER_LED) == 1) {
     blip("power");
     delay(wait_time_ms);
-    return ("\"Kettle powered on\"");
+    return ("Kettle powered on");
     }
-  else { return ("\"Kettle already on\"");}
+  else { return ("Kettle already on");}
 }
 
 String power_off() {
   if (digitalRead(POWER_LED) == 0) {
     blip("power");
-    return ("\"Kettle powered off\"");
+    return ("Kettle powered off");
     }
-  else { return ("\"Kettle already off\""); }
+  else { return ("Kettle already off"); }
 }
 
 String brew() {
@@ -188,31 +188,31 @@ String brew() {
     if (digitalRead(HOLD_LED) == 1) {
       blip("hold");
     }
-    return ("\"Brewing now!!!\"");
+    return ("Brewing now!!!");
   }
-  else { return("\"Kettle already on\"");}
+  else { return("Kettle already on");}
 }
 
 String hold_on() {
   if (digitalRead(POWER_LED) == 0) {
     if (digitalRead(HOLD_LED) == 1) {
       blip("hold");
-      return("\"Hold temperature on\"");
+      return("Hold temperature on");
       }
-    else { return("\"Hold temperature already on\""); }
+    else { return("Hold temperature already on"); }
   }
-  else { return("\"Kettle is off, cannot turn hold on\"");}
+  else { return("Kettle is off, cannot turn hold on");}
 }
 
 String hold_off() {
   if (digitalRead(POWER_LED) == 0) {
     if (digitalRead(HOLD_LED) == 0) {
       blip("hold");
-      return("\"Hold temperature off\"");
+      return("Hold temperature off");
       }
-    else { return("\"Hold already off\""); }
+    else { return("Hold already off"); }
   }
-  else { return("\"Kettle is off, cannot turn hold off\""); }
+  else { return("Kettle is off, cannot turn hold off"); }
 }
 
 void bonafizy_admin() {
