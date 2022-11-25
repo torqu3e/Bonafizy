@@ -69,6 +69,8 @@ If everything is good. Undo the screws and coat all the points that were soldere
 
 ## Endpoints
 ```
+# Adding ?pretty or ?pretty=true to any endpoint will pretty print the response
+
 /state          - retrieve kettle state
 /brew           - turn power and hold on at once
 /power/off      - turn kettle off
@@ -77,6 +79,9 @@ If everything is good. Undo the screws and coat all the points that were soldere
 /hold/on        - invert ^
 /bonafizy/admin - reset wifi configuration (POST with body - '{"factory_reset":"true"}')
 /coffee         - Hit it!
+
+
+
 ```
 ## Running tests
 
