@@ -1,5 +1,5 @@
 /* Sketch - Bonafizy
- * Version - 0.1.5
+ * Version - 0.1.6
  * Author - Tejinder Singh
  *
  * TODO:
@@ -18,7 +18,7 @@
 #define HOSTNAME "kettle"
 //------------------------------------------
 
-#define FW_VER "0.1.5"
+#define FW_VER "0.1.6"
 #define POWER_BUTTON D3 //Pin attached to kettle's power button
 #define HOLD_BUTTON D2 //Pin attached to kettle's hold button
 #define POWER_LED D6 //Pin attached to kettle's power LED
@@ -146,7 +146,10 @@ void api_handler() {
   JsonObject state = doc.createNestedObject("state");
   state["power"] = 1 - digitalRead(POWER_LED);
   state["hold"] = 1 - digitalRead(HOLD_LED);
-  serializeJsonPretty(doc, message);
+  if (server.hasArg("pretty") || (server.arg("pretty") == "true")) {
+    serializeJsonPretty(doc, message);
+  }
+  else { serializeJson(doc, message); }
   Serial.println(message);
   server.send(200, "application/json", message);
 }
@@ -170,7 +173,7 @@ String power_on() {
     delay(wait_time_ms);
     return ("Kettle powered on");
     }
-  else { return ("Kettle already on");}
+  else { return ("Kettle already on"); }
 }
 
 String power_off() {
@@ -182,15 +185,17 @@ String power_off() {
 }
 
 String brew() {
-  if (digitalRead(POWER_LED) == 1) {
+  if (digitalRead(POWER_LED) == 0 && digitalRead(HOLD_LED) == 1) {
+    blip("hold");
+    return ("Kettle was on, set hold temperature on");
+  }
+  else if (digitalRead(POWER_LED) == 1) {
     blip("power");
     delay(wait_time_ms);
-    if (digitalRead(HOLD_LED) == 1) {
-      blip("hold");
-    }
+    blip("hold");
     return ("Brewing now!!!");
   }
-  else { return("Kettle already on");}
+  else { return("Kettle already brewing"); }
 }
 
 String hold_on() {
@@ -201,7 +206,7 @@ String hold_on() {
       }
     else { return("Hold temperature already on"); }
   }
-  else { return("Kettle is off, cannot turn hold on");}
+  else { return("Kettle is off, cannot turn hold on"); }
 }
 
 String hold_off() {
