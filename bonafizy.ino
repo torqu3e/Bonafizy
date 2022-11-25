@@ -3,9 +3,8 @@
  * Author - Tejinder Singh
  *
  * TODO:
-    - Brew coffee! 
+    - Brew coffee!
  */
-
 
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
@@ -19,10 +18,10 @@
 //------------------------------------------
 
 #define FW_VER "0.1.6"
-#define POWER_BUTTON D3 //Pin attached to kettle's power button
-#define HOLD_BUTTON D2 //Pin attached to kettle's hold button
-#define POWER_LED D6 //Pin attached to kettle's power LED
-#define HOLD_LED D5 //Pin attached to kettle's hold LED
+#define POWER_BUTTON D3 // Pin attached to kettle's power button
+#define HOLD_BUTTON D2  // Pin attached to kettle's hold button
+#define POWER_LED D6    // Pin attached to kettle's power LED
+#define HOLD_LED D5     // Pin attached to kettle's hold LED
 #define BUILTIN_LED D4
 
 const int wait_time_ms = 100;
@@ -30,13 +29,14 @@ const int wait_time_ms = 100;
 WiFiManager wifiManager;
 ESP8266WebServer server(80);
 
-void setup() {
-  pinMode (POWER_BUTTON, OUTPUT);
+void setup()
+{
+  pinMode(POWER_BUTTON, OUTPUT);
   digitalWrite(POWER_BUTTON, HIGH);
-  pinMode (HOLD_BUTTON, OUTPUT);
+  pinMode(HOLD_BUTTON, OUTPUT);
   digitalWrite(HOLD_BUTTON, HIGH);
-  pinMode (POWER_LED, INPUT);
-  pinMode (HOLD_LED, INPUT);
+  pinMode(POWER_LED, INPUT);
+  pinMode(HOLD_LED, INPUT);
 
   Serial.begin(115200);
   Serial.print("");
@@ -57,10 +57,12 @@ void setup() {
 
   Serial.println("Setting up mDNS responder...");
   uint8_t mdns_counter = 0;
-  while (!MDNS.begin(HOSTNAME)) {
+  while (!MDNS.begin(HOSTNAME))
+  {
     delay(1000);
     Serial.print(".");
-    if (mdns_counter >= 5) {
+    if (mdns_counter >= 5)
+    {
       Serial.println("mDNS responder setup failed, rebooting...");
       ESP.reset();
     }
@@ -71,7 +73,9 @@ void setup() {
   Serial.printf("%s.local", HOSTNAME);
   Serial.println("");
 
-  ArduinoOTA.onStart([]() {
+  ArduinoOTA.setHostname(HOSTNAME);
+  ArduinoOTA.onStart([]()
+                     {
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH) {
       type = "sketch";
@@ -79,15 +83,13 @@ void setup() {
       type = "filesystem";
     }
 
-    Serial.println("Start updating " + type);
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.println("Start updating " + type); });
+  ArduinoOTA.onEnd([]()
+                   { Serial.println("\nEnd"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
+                        { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); });
+  ArduinoOTA.onError([](ota_error_t error)
+                     {
     Serial.printf("Error[%u]: ", error);
     if (error == OTA_AUTH_ERROR) {
       Serial.println("Auth Failed");
@@ -99,8 +101,7 @@ void setup() {
       Serial.println("Receive Failed");
     } else if (error == OTA_END_ERROR) {
       Serial.println("End Failed");
-    }
-  });
+    } });
   ArduinoOTA.begin();
 
   server.on("/", HTTP_GET, HandleRoot);
@@ -119,141 +120,193 @@ void setup() {
   Serial.println(" at ip " + WiFi.localIP().toString());
 }
 
-void api_handler() {
+void api_handler()
+{
   String message = "";
-  const size_t capacity = 2*JSON_OBJECT_SIZE(2) + 100;
+  const size_t capacity = 2 * JSON_OBJECT_SIZE(2) + 100;
   DynamicJsonDocument doc(capacity);
 
-  if (server.uri() == "/power/off") {
+  if (server.uri() == "/power/off")
+  {
     doc["message"] = power_off();
   }
-  else if (server.uri() == "/power/on") {
-     doc["message"] = power_on();
+  else if (server.uri() == "/power/on")
+  {
+    doc["message"] = power_on();
   }
-  else if (server.uri() == "/hold/on") {
-     doc["message"] = hold_on();
+  else if (server.uri() == "/hold/on")
+  {
+    doc["message"] = hold_on();
   }
-  else if (server.uri() == "/hold/off") {
-     doc["message"] = hold_off();
+  else if (server.uri() == "/hold/off")
+  {
+    doc["message"] = hold_off();
   }
-  else if (server.uri() == "/brew") {
-     doc["message"] = brew();
+  else if (server.uri() == "/brew")
+  {
+    doc["message"] = brew();
   }
-  else if (server.uri() == "/state") {
+  else if (server.uri() == "/state")
+  {
     doc["version"] = FW_VER;
   }
 
   JsonObject state = doc.createNestedObject("state");
   state["power"] = 1 - digitalRead(POWER_LED);
   state["hold"] = 1 - digitalRead(HOLD_LED);
-  if (server.hasArg("pretty") || (server.arg("pretty") == "true")) {
+  if (server.hasArg("pretty") && (server.arg("pretty") != "false"))
+  {
     serializeJsonPretty(doc, message);
   }
-  else { serializeJson(doc, message); }
+  else
+  {
+    serializeJson(doc, message);
+  }
   Serial.println(message);
   server.send(200, "application/json", message);
 }
 
-void blip(String function) {
-  if (function == "power") {
+void blip(String function)
+{
+  if (function == "power")
+  {
     digitalWrite(POWER_BUTTON, LOW);
     delay(wait_time_ms);
     digitalWrite(POWER_BUTTON, HIGH);
   }
-  else if (function == "hold") {
+  else if (function == "hold")
+  {
     digitalWrite(HOLD_BUTTON, LOW);
     delay(wait_time_ms);
     digitalWrite(HOLD_BUTTON, HIGH);
   }
-} 
+}
 
-String power_on() {
-  if (digitalRead(POWER_LED) == 1) {
+String power_on()
+{
+  if (digitalRead(POWER_LED) == 1)
+  {
     blip("power");
     delay(wait_time_ms);
     return ("Kettle powered on");
-    }
-  else { return ("Kettle already on"); }
+  }
+  else
+  {
+    return ("Kettle already on");
+  }
 }
 
-String power_off() {
-  if (digitalRead(POWER_LED) == 0) {
+String power_off()
+{
+  if (digitalRead(POWER_LED) == 0)
+  {
     blip("power");
     return ("Kettle powered off");
-    }
-  else { return ("Kettle already off"); }
+  }
+  else
+  {
+    return ("Kettle already off");
+  }
 }
 
-String brew() {
-  if (digitalRead(POWER_LED) == 0 && digitalRead(HOLD_LED) == 1) {
+String brew()
+{
+  if (digitalRead(POWER_LED) == 0 && digitalRead(HOLD_LED) == 1)
+  {
     blip("hold");
     return ("Kettle was on, set hold temperature on");
   }
-  else if (digitalRead(POWER_LED) == 1) {
+  else if (digitalRead(POWER_LED) == 1)
+  {
     blip("power");
     delay(wait_time_ms);
     blip("hold");
     return ("Brewing now!!!");
   }
-  else { return("Kettle already brewing"); }
-}
-
-String hold_on() {
-  if (digitalRead(POWER_LED) == 0) {
-    if (digitalRead(HOLD_LED) == 1) {
-      blip("hold");
-      return("Hold temperature on");
-      }
-    else { return("Hold temperature already on"); }
+  else
+  {
+    return ("Kettle already brewing");
   }
-  else { return("Kettle is off, cannot turn hold on"); }
 }
 
-String hold_off() {
-  if (digitalRead(POWER_LED) == 0) {
-    if (digitalRead(HOLD_LED) == 0) {
+String hold_on()
+{
+  if (digitalRead(POWER_LED) == 0)
+  {
+    if (digitalRead(HOLD_LED) == 1)
+    {
       blip("hold");
-      return("Hold temperature off");
-      }
-    else { return("Hold already off"); }
+      return ("Hold temperature on");
+    }
+    else
+    {
+      return ("Hold temperature already on");
+    }
   }
-  else { return("Kettle is off, cannot turn hold off"); }
+  else
+  {
+    return ("Kettle is off, cannot turn hold on");
+  }
 }
 
-void bonafizy_admin() {
+String hold_off()
+{
+  if (digitalRead(POWER_LED) == 0)
+  {
+    if (digitalRead(HOLD_LED) == 0)
+    {
+      blip("hold");
+      return ("Hold temperature off");
+    }
+    else
+    {
+      return ("Hold already off");
+    }
+  }
+  else
+  {
+    return ("Kettle is off, cannot turn hold off");
+  }
+}
+
+void bonafizy_admin()
+{
   DynamicJsonDocument doc(1024);
   deserializeJson(doc, server.arg("plain"));
   String message = "";
-   if (doc["factory_reset"] == "True" || doc["factory_reset"] == "true") {
-     message += "{\"message\": \"Resetting ESP, Connect to AP after reboot for configuration\"}";
-     Serial.println(message);
-     server.send(200, "application/json", message);
-     delay(500);
-     wifiManager.resetSettings();
-     delay(500);
-     ESP.reset();
-   }
+  if (doc["factory_reset"] == "True" || doc["factory_reset"] == "true")
+  {
+    message += "{\"message\": \"Resetting ESP, Connect to AP after reboot for configuration\"}";
+    Serial.println(message);
+    server.send(200, "application/json", message);
+    delay(500);
+    wifiManager.resetSettings();
+    delay(500);
+    ESP.reset();
+  }
   message += "{\"message\": \"Unrecognized instruction\"}";
   Serial.println(message);
   server.send(422, "application/json", message);
 }
 
-void htcpcp() {
+void htcpcp()
+{
   String message = "<html><h3><a href=\"https://tools.ietf.org/html/rfc2324#section-2.3.2\">I'm a Teapot</a></h2></html>";
   Serial.println("I'm a Teapot https://tools.ietf.org/html/rfc2324#section-2.3.2");
-  server.send(418, "text/html", message );
+  server.send(418, "text/html", message);
 }
 
-void HandleRoot() {
+void HandleRoot()
+{
   String message = "<html>";
   message += "<h2>Bonafizy</h2>";
   message += "<body>Wifi endpoint for the Bonavita kettle</body>";
   message += "</html>";
-  server.send(200, "text/html", message );
+  server.send(200, "text/html", message);
 }
 
-
-void HandleNotFound() {
+void HandleNotFound()
+{
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -262,14 +315,15 @@ void HandleNotFound() {
   message += "\nArguments: ";
   message += server.args();
   message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
+  for (uint8_t i = 0; i < server.args(); i++)
+  {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/html", message);
 }
 
-
-void loop() {
+void loop()
+{
   MDNS.update();
   server.handleClient();
   ArduinoOTA.handle();
