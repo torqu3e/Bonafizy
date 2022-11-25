@@ -78,6 +78,16 @@ If everything is good. Undo the screws and coat all the points that were soldere
 /bonafizy/admin - reset wifi configuration (POST with body - '{"factory_reset":"true"}')
 /coffee         - Hit it!
 ```
+## Running tests
+
+This section is mostly for me since I come back to the project rarely enough to forget about this.
+
+```
+$ pip install -r requirements.txt
+
+$ pytest --html=test_report.html test_sample.py 
+
+```
 
 ## Pitfalls
 * The **ESP8266 has to be powered on before the kettle**, else the kettle misbehaves. Initial state of ESP8266 pins take a while to settle during bootup and if ketlle buttons are pulled low during bootup it gets all weird about it.
