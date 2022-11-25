@@ -6,7 +6,7 @@ import requests
 import socket
 import time
 
-FW_VER = "0.1.5"
+FW_VER = "0.1.6"
 KETTLE_IP = socket.gethostbyname("kettle.local")
 
 API_ENDPOINTS = [
@@ -19,6 +19,9 @@ API_ENDPOINTS = [
     "hold/on",
     "power/off",
     "brew",
+    "brew",
+    "power/off",
+    "power/on",
     "brew",
     "power/off",
     "state",
@@ -34,7 +37,10 @@ RESPONSES = [
     '{"message": "Hold temperature already on", "state": {"power": 1, "hold": 1}}',
     '{"message": "Kettle powered off", "state": {"power": 0, "hold": 0}}',
     '{"message": "Brewing now!!!", "state": {"power": 1, "hold": 1}}',
-    '{"message": "Kettle already on", "state": {"power": 1, "hold": 1}}',
+    '{"message": "Kettle already brewing", "state": {"power": 1, "hold": 1}}',
+    '{"message": "Kettle powered off", "state": {"power": 0, "hold": 0}}',
+    '{"message": "Kettle powered on", "state": {"power": 1, "hold": 0}}',
+    '{"message": "Kettle was on, set hold temperature on", "state": {"power": 1, "hold": 1}}',
     '{"message": "Kettle powered off", "state": {"power": 0, "hold": 0}}',
     f'{{"version": "{FW_VER}", "state": {{"power": 0, "hold": 0}}}}',
     '<html><h3><a href="https://tools.ietf.org/html/rfc2324#section-2.3.2">I\'m a Teapot</a></h2></html>',
@@ -49,6 +55,7 @@ def check_response(endpoint):
 
 def test_bonafizy():
     for i in range(len(API_ENDPOINTS) - 1):
+        print(f"Testing {API_ENDPOINTS[i]}...")
         assert json.loads(check_response(API_ENDPOINTS[i])) == json.loads(RESPONSES[i])
 
 
